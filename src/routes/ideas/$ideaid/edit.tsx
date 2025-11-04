@@ -1,54 +1,48 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { createIdea } from "@/api/ideas";
-import type { Idea } from "@/types";
+import { fetchIdea } from "@/api/ideas";
+import {
+  queryOptions,
+  useSuspenseQuery,
+  useMutation,
+} from "@tanstack/react-query";
 
-export const Route = createFileRoute("/ideas/new/")({
-  component: NewIdeaPage,
+const ideaQueryOptions = (id: string) =>
+  queryOptions({
+    queryKey: ["idea", id],
+    queryFn: () => fetchIdea(id),
+  });
+
+export const Route = createFileRoute("/ideas/$ideaId/edit")({
+  component: IdeaEditPage,
+  loader: async ({ params, context: { queryClient } }) => {
+    return queryClient.ensureQueryData(ideaQueryOptions(params.ideaId));
+  },
 });
 
-function NewIdeaPage() {
+function IdeaEditPage() {
+  const { ideaId } = Route.useParams();
   const navigate = useNavigate();
-  const [title, setTitle] = useState("");
-  const [summary, setSummary] = useState("");
-  const [description, setDescription] = useState("");
-  const [tags, setTags] = useState("");
-  const { mutateAsync, isPending } = useMutation({
-    mutationFn: createIdea,
-    onSuccess: () => {
-      navigate({ to: "/ideas" });
-    },
-  });
-  const handleSumbit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const { data: idea } = useSuspenseQuery(ideaQueryOptions(ideaId));
 
-    if (!title.trim() || !summary.trim() || !description.trim()) {
-      alert("Please field in all fields");
-      return;
-    }
-    try {
-      await mutateAsync({
-        title,
-        summary,
-        description,
-        tags: tags
-          .split(",")
-          .map(() => tags.trim())
-          .filter((tag) => tag !== ""),
-      });
-    } catch (error) {
-      console.error(error);
-      alert("Something went wrong?");
-    }
-  };
+  const [title, setTitle] = useState(idea.title);
+  const [summary, setSummary] = useState(idea.summary);
+  const [description, setDescription] = useState(idea.description);
+  const [tagsInput, setTagsInput] = useState(idea.tags.join(", "));
   return (
     <div className='space-y-4'>
       <div className='flex justify-between items-center mb-4'>
-        <h1 className='text-2xl font-bold'>Create New Idea</h1>
+        <h1 className='text-2xl font-bold'>Edit Idea</h1>
+        <Link
+          to='/ideas/$ideaId'
+          params={{ ideaId }}
+          className='text-sm text-blue-600 hover:underline'
+        >
+          ⬅️ Back to Idea
+        </Link>
       </div>
-
-      <form onSubmit={handleSumbit} className='space-y-2'>
+      <h1 className='text-3xl font-bold mb-6'>Create New Idea</h1>
+      <form className='space-y-2'>
         <div>
           <label
             htmlFor='title'
@@ -110,8 +104,8 @@ function NewIdeaPage() {
           <input
             id='tags'
             type='text'
-            value={tags}
-            onChange={(e) => setTags(e.target.value)}
+            value={tagsInput}
+            onChange={(e) => setTagsInput(e.target.value)}
             className='w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
             placeholder='optional tags, comma separated'
           />
@@ -119,11 +113,10 @@ function NewIdeaPage() {
 
         <div className='mt-5'>
           <button
-            disabled={isPending}
             type='submit'
             className='block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-md transition disabled:opacity-50 disabled:cursor-not-allowed'
           >
-            {isPending ? "Creating idea" : "Create Idea"}
+            Update Idea
           </button>
         </div>
       </form>
