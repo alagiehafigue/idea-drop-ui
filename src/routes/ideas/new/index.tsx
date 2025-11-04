@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { createIdea } from "@/api/ideas";
 import type { Idea } from "@/types";
 
 export const Route = createFileRoute("/ideas/new/")({
@@ -12,10 +14,38 @@ function NewIdeaPage() {
   const [summary, setSummary] = useState("");
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState("");
+  const { mutateAsync, isPending } = useMutation({
+    mutationFn: createIdea,
+    onSuccess: () => {
+      navigate({ to: "/ideas" });
+    },
+  });
+  const handleSumbit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!title.trim() || !summary.trim() || !description.trim()) {
+      alert("Please field in all fields");
+      return;
+    }
+    try {
+      await mutateAsync({
+        title,
+        summary,
+        description,
+        tags: tags
+          .split(",")
+          .map(() => tags.trim())
+          .filter((tag) => tag !== ""),
+      });
+    } catch (error) {
+      console.error(error);
+      alert("Something went wrong?");
+    }
+  };
   return (
     <div className='space-y-4'>
       <h1 className='text-3xl font-bold mb-6'>Create New Idea</h1>
-      <form className='space-y-2'>
+      <form onSubmit={handleSumbit} className='space-y-2'>
         <div>
           <label
             htmlFor='title'
@@ -86,10 +116,11 @@ function NewIdeaPage() {
 
         <div className='mt-5'>
           <button
+            disabled={isPending}
             type='submit'
             className='block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-md transition disabled:opacity-50 disabled:cursor-not-allowed'
           >
-            Create Idea
+            {isPending ? "Creating idea" : "Create Idea"}
           </button>
         </div>
       </form>
