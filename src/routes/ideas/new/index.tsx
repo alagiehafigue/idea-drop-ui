@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { createIdea } from "@/api/ideas";
-import type { Idea } from "@/types";
 
 export const Route = createFileRoute("/ideas/new/")({
   component: NewIdeaPage,

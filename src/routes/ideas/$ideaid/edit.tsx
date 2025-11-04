@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { fetchIdea } from "@/api/ideas";
+import { fetchIdea, updateIdea } from "@/api/ideas";
 import {
   queryOptions,
   useSuspenseQuery,
@@ -29,6 +29,27 @@ function IdeaEditPage() {
   const [summary, setSummary] = useState(idea.summary);
   const [description, setDescription] = useState(idea.description);
   const [tagsInput, setTagsInput] = useState(idea.tags.join(", "));
+
+  const { mutateAsync, isPending } = useMutation({
+    mutationFn: () =>
+      updateIdea(ideaId, {
+        title,
+        summary,
+        description,
+        tags: tagsInput
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
+      }),
+    onSuccess: () => {
+      navigate({ to: "/ideas/$ideaId", params: { ideaId } });
+    },
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await mutateAsync();
+  };
   return (
     <div className='space-y-4'>
       <div className='flex justify-between items-center mb-4'>
@@ -42,7 +63,7 @@ function IdeaEditPage() {
         </Link>
       </div>
       <h1 className='text-3xl font-bold mb-6'>Create New Idea</h1>
-      <form className='space-y-2'>
+      <form onSubmit={handleSubmit} className='space-y-2'>
         <div>
           <label
             htmlFor='title'
@@ -113,10 +134,11 @@ function IdeaEditPage() {
 
         <div className='mt-5'>
           <button
+            disabled={isPending}
             type='submit'
             className='block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-md transition disabled:opacity-50 disabled:cursor-not-allowed'
           >
-            Update Idea
+            {isPending ? "Updating.." : "Update Idea"}
           </button>
         </div>
       </form>
