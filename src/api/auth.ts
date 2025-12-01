@@ -24,3 +24,17 @@ export const registerUser = async ({
     
   }
 }
+
+export const loginUser = async (credentials: {
+  email: string;
+  password: string;
+}) => {
+  try {
+    const res = await api.post('/auth/login', credentials);
+
+    return res.data;
+  } catch (err: any) {
+     const message = err.response?.data?.message || 'Failed to Login';
+    throw new Error(message);
+  }
+}
